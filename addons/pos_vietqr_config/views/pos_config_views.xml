@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_config_view_form_vietqr" model="ir.ui.view">
+        <field name="name">pos.config.form.vietqr</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Cau hinh thanh toan VietQR">
+                    <field name="vietqr_bank_code"/>
+                    <field name="vietqr_bank_account"/>
+                    <field name="vietqr_account_name"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

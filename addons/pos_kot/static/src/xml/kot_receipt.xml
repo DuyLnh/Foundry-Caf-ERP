@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_kot.KotSection" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
+
+        <xpath expr="//div[hasclass('pos-receipt')]" position="inside">
+
+            <!-- === DUONG CAT 1 === -->
+            <div style="text-align:center;margin:20px 0;font-size:12px;letter-spacing:2px;">
+                - - - - - - - - - - - - - - - - - - - - -
+            </div>
+
+            <!-- === RECEIPT BAN 2 - KE TOAN === -->
+            <div style="text-align:center;font-weight:bold;font-size:11px;margin-bottom:4px;">
+                BAN LUU - KE TOAN
+            </div>
+            <div style="text-align:center;font-size:11px;margin-bottom:2px;">
+                <t t-esc="props.data.name"/>
+            </div>
+            <div style="text-align:center;font-size:11px;margin-bottom:6px;">
+                <t t-esc="props.data.date"/>
+            </div>
+            <div style="border-bottom:1px dashed #000;margin-bottom:4px;padding-bottom:4px;">
+                <t t-foreach="props.data.orderlines" t-as="line" t-key="line.id">
+                    <div style="display:flex;justify-content:space-between;font-size:11px;">
+                        <span><t t-esc="line.qty"/>x <t t-esc="line.productName"/></span>
+                        <span><t t-esc="line.price_display"/> d</span>
+                    </div>
+                </t>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:12px;margin-bottom:2px;">
+                <span>TONG</span>
+                <span><t t-esc="props.data.amount_total"/> d</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+                <span>Thanh toan</span>
+                <span>
+                    <t t-foreach="props.data.paymentlines" t-as="pline" t-key="pline.cid">
+                        <t t-esc="pline.name"/>
+                    </t>
+                </span>
+            </div>
+            <div style="text-align:center;font-size:10px;margin-top:4px;">
+                Thu ngan: <t t-esc="props.data.cashier || 'Administrator'"/>
+            </div>
+
+            <!-- === DUONG CAT 2 === -->
+            <div style="text-align:center;margin:20px 0;font-size:12px;letter-spacing:2px;">
+                - - - - - - - - - - - - - - - - - - - - -
+            </div>
+
+            <!-- === KOT - PHA CHE === -->
+            <div style="text-align:center;font-weight:bold;font-size:14px;border-bottom:2px dashed #000;padding-bottom:6px;margin-bottom:6px;">
+                FOUNDRY CAFE - KOT
+            </div>
+            <div style="text-align:center;font-size:11px;margin-bottom:6px;">
+                PHA CHE
+            </div>
+            <div style="border-bottom:1px dashed #000;padding-bottom:4px;margin-bottom:6px;">
+                <div style="font-size:11px;">STT: <t t-esc="props.data.name"/></div>
+                <div style="font-size:11px;">Gio: <t t-esc="props.data.date"/></div>
+                <div style="font-size:11px;">Thu ngan: <t t-esc="props.data.cashier || 'Administrator'"/></div>
+            </div>
+            <div style="border-bottom:1px dashed #000;padding-bottom:4px;margin-bottom:6px;">
+                <t t-foreach="props.data.orderlines" t-as="line" t-key="line.id">
+                    <div style="margin-bottom:4px;">
+                        <div style="font-weight:bold;font-size:12px;">
+                            <t t-esc="line.qty"/>x <t t-esc="line.productName"/>
+                        </div>
+                        <t t-if="line.customerNote">
+                            <div style="padding-left:12px;font-style:italic;font-size:11px;">
+                                <t t-esc="line.customerNote"/>
+                            </div>
+                        </t>
+                    </div>
+                </t>
+            </div>
+            <div style="text-align:center;font-weight:bold;font-size:13px;">
+                Tong: <t t-esc="props.data.orderlines.length"/> mon
+            </div>
+
+        </xpath>
+
+    </t>
+</templates>

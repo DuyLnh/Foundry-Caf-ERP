@@ -1,0 +1,28 @@
+# === DOCKER ===
+postgres-data/
+odoo-web-data/
+
+# === LOGS ===
+*.log
+logs/
+
+# === PYTHON ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === SECRETS ===
+.env
+*.pem
+secrets/
