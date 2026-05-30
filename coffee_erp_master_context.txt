@@ -1,0 +1,340 @@
+# Foundry Café - Odoo ERP Master Context
+
+**Owner:** Linh
+**Last Updated:** 2026-05-18
+**Status:** Reverse-engineering & rationalizing existing system
+**Goal:** Interview-ready showcase by 2026-06-18
+
+---
+
+## 1. SYSTEM IDENTITY
+
+- **Brand:** Foundry Café (Quán cà phê tự phục vụ)
+- **Stack:** Odoo 17 Community + PostgreSQL 15, Docker Compose
+- **DB Name:** coffee_shop_clean
+- **Created:** 2026-05-07
+- **Locale:** UI=English, Country=Vietnam, Currency=VND
+- **Demo Data:** None (clean install)
+
+## 2. DEPLOYMENT INFO
+
+- **Host:** Local laptop (Dell Latitude 7490, Windows)
+- **Project path:** D:\odoo-lab\coffee-shop
+- **Access URL:** http://localhost:8069
+- **Containers:** odoo17_app, odoo17_postgres
+- **Credentials:** Stored in password manager (NOT in this file)
+
+## 3. ARCHITECTURE
+
+### Infrastructure layer
+- Docker Compose orchestration
+- Network: coffee-shop_default (isolated)
+- 2 containers: odoo17_app, odoo17_postgres
+- Volumes: postgres-data + odoo-web-data (filestore)
+- Restart policy: unless-stopped (production-grade)
+
+### Configuration approach
+- odoo.conf externalized in ./config (mounted to /etc/odoo)
+- Custom addons in ./addons (mounted to /mnt/extra-addons)
+
+### Custom modules
+1. pos_kot - Kitchen Order Ticket for barista
+2. pos_vietqr_config - VietQR payment integration (VN-specific)
+
+### Receipt customization
+- 3 XML files at root: order_receipt_{backup, check, original}.xml
+- Suggests receipt template was modified
+- Scope to verify in S17
+
+## 4. MODULE INVENTORY (76 total installed)
+
+### Confirmed installed
+- POS stack: point_of_sale, pos_sale, pos_sale_loyalty, pos_loyalty, pos_online_payment, pos_epson_printer, pos_sale_product_configurator, pos_kot (custom), pos_vietqr_config (custom)
+- Sales: sale, sale_management
+- Inventory: stock
+- Accounting: account, account_edi_ubl_cii, account_payment, account_qr_code_emv, l10n_vn, base_vat
+- Loyalty: loyalty (engine)
+- Security: auth_totp + 2 related (2FA stack), privacy_lookup
+- Infrastructure: mail, bus, portal, payment, http_routing, google_gmail, barcodes
+
+### Intentionally NOT installed
+- purchase (no PO management - need defense story)
+- hr (no HR module - need defense story)
+- website (no e-commerce - need defense story)
+
+## 5. DATA STATE (as of 2026-05-18)
+
+| Entity | Count | Notes |
+|--------|-------|-------|
+| product_template | 36 | Coffee menu |
+| res_partner | 14 | Customers + suppliers + employees mixed |
+| pos_config | 1 | Single POS for Foundry Café |
+| pos_order | 52 | **Real transactions tested - workflow verified** |
+| loyalty_program | 3 | Including "5 drinks → 1 free bạc sỉu" + 2 to identify |
+
+## 6. STRATEGIC CONTEXT
+
+- **Career path:** BA/BC in ERP (NOT developer)
+- **Timeline:** Apply jobs by 2026-06-18 (1 month)
+- **Daily budget:** 1 hour/day, low logic load (burnout risk)
+- **Project purpose:** Interview showcase (NOT product for sale)
+- **Long-term:** Odoo → Oracle path, build-to-sell entrepreneur
+
+## 7. KEY DESIGN DECISIONS TO DEFEND
+
+1. **Multi-layer security (2FA enabled):** Why needed for coffee shop?
+2. **Dual payment paths (online vs VietQR):** Why both?
+3. **VN-first localization:** Full l10n_vn + EDI + VietQR
+4. **F&B specialization:** KOT custom + Epson + loyalty
+5. **No purchase/hr/website:** Why intentional?
+
+## 8. ROADMAP (30 days, S1-S30)
+
+- **Week 1 (S1-S7):** Master Data + POS Foundation
+- **Week 2 (S8-S14):** Transaction Flow End-to-End
+- **Week 3 (S15-S21):** Customization + Defense Stories
+- **Week 4 (S22-S30):** Interview Readiness
+
+## 9. SESSION LOG
+
+| Date | Session | What I learned |
+|------|---------|----------------|
+| 2026-05-18 | Setup with Claude | Re-established context after losing Team project. Confirmed architecture, modules, data state. Committed to 30-day plan. |
+| 2026-05-19 | S1 | (To be filled tomorrow) |
+
+## 10. PENDING QUESTIONS
+
+- What are the 3 loyalty programs specifically? (Will know after S4)
+- What's the product variant structure? (Will know after S2)
+- What's inside the 3 XML receipt files? (Will know after S17)
+- Are there custom fields/views beyond the 2 custom addons? (Will know in S15)
+
+| 2026-05-20 | S0 | Ran SFC /scannow - found and repaired corrupt 
+system files. Root cause: likely PowerShell + BKAV interference. 
+Symptoms improved but not fully resolved (Unikey intermittent, 
+some icons missing). Sufficient to proceed with S1. |
+
+2026-05-21 | S2 | Partners: 10 records (7 customers + admin + company + NV user). Loyalty verified: (1) Mua 5 tặng 1 Bạc Sỉu - 4 cards active, (2) Tích điểm 300k→giảm 20k - 0 cards. Master Context correction: 2 loyalty programs, not 3.
+
+POS Config settings (Ma ngan hang + So TK + Ten chu TK)
+→ Module pos_vietqr_config đọc data này
+→ Tạo QR URL động khi in receipt
+→ QR hiện màn phụ + màn POS chính + in nhiệt
+→ Khách scan → chuyển khoản MB
+→ Cashier confirm → bấm Bank trên POS
+→ Ghi vào Bank journal (BNK1 → account 1124)
+
+| 2026-05-22 | S5 | POS Session Lifecycle verified hoàn chỉnh:
+Open (500k cash float) → Order (Bạc Sỉu 40k) → Payment (Cash 50k, 
+thối 10k) → Receipt 2 trang (customer receipt + KOT pha chế) → 
+Close (counted 540k, difference 0).
+Order Shop/0053: status flow New→Paid→Posted, linked journal entry 
+POSS/2026/05/0015. Payments tab ghi change như payment line âm (-10k).
+Z-Report structure: Sales / Taxes / Payments / Session Control / 
+Cash Opening.
+Cash float issue: Opening 500k < Closing session trước 975k → Odoo 
+tự ghi -475k loss tại opening. Production cần cash withdrawal process 
+riêng để tránh báo cáo lệch.
+"Foundry Café (not used)" là artifact display — tên thật POS Config 
+là "Foundry Café", confirmed qua Sales Details dialog.
+POS orders total: 53 (tăng từ 52 sau order test hôm nay).
+
+Data State update:
+| pos_order | 53 | Real transactions + 1 test order S5 | |
+
+| 2026-05-22 | S6 | Receipt architecture reverse-engineered hoàn chỉnh.
+File thật active: pos_vietqr_config/static/src/xml/order_receipt.xml (5KB, 5/17).
+3 XML root files = draft/backup, không được Odoo load.
+Cơ chế: manifest đăng ký asset bundle → Odoo inject vào browser khi mở POS.
+order_receipt.xml có 3 xpath: (1) QR trước order-date nếu payment=bank,
+(2) Bản lưu kế toán sau order-date, (3) KOT pha chế.
+pos_config.py (8 dòng): tạo 3 fields VietQR trong pos.config model →
+data flow khép kín: DB fields → URL QR động → receipt in.
+pos_kot/js/ trống. BUG confirmed: pos_vietqr_config đã gộp KOT logic vào
+order_receipt.xml → duplicate với pos_kot → double print.
+pos_order.py + pos_session.py: source bị xóa, chỉ còn .pyc orphan trong
+__pycache__ → fragile state, cần document.
+Defense story: phát hiện 2 technical debts khi reverse-engineer. |
+
+═══════════════════════════════════════
+SESSION LOG — S7 | 2026-05-22
+═══════════════════════════════════════
+
+WHAT WAS DONE:
+- Defense Story #1: Odoo vs iPOS/KiotViet (platform vs product)
+- Defense Story #2: Inventory pain point từ kinh nghiệm thực tế quán
+- Installed Manufacturing module (mrp)
+- Tạo Unit of Measure: ml (Volume category, ratio 0.001L)
+- Tạo 5 nguyên liệu thô: Sữa Đặc, Sữa Tươi, Cà Phê - Xay, 
+  Cà Phê Hạt, Cốt Cà Phê (Storable, đúng UoM)
+- Tạo BoM: Cốt Cà Phê (550ml ← 150g Cà Phê Xay)
+- Tạo BoM: Bạc Sỉu (1 ly ← 20ml Sữa Đặc + 40ml Sữa Tươi 
+  + 30ml Cốt Cà Phê)
+- Verify nested BoM: Odoo tự tính 8.18g Cà Phê Xay per ly Bạc Sỉu
+
+CONCEPT VERIFIED: Nested BoM hoạt động end-to-end.
+
+DATA STATE UPDATE:
+- mrp module: installed
+- UoM ml: added to Volume category
+- Raw materials: 5 products (Storable)
+- BoM: 2 records (Cốt Cà Phê + Bạc Sỉu)
+- Bạc Sỉu product type: vẫn Consumable 
+  (chưa đổi — S8 sẽ đổi toàn bộ 29 products)
+
+PENDING S8:
+- Tạo đầy đủ nguyên liệu thô còn lại (trà, trái cây, topping...)
+- Đổi 29 finished products từ Consumable → Storable
+- Tạo BoM cho các sản phẩm còn lại
+═══════════════════════════════════════
+SESSION LOG — S8 | 2026-05-26
+═══════════════════════════════════════
+
+WHAT WAS DONE:
+- Cài Git for Windows 2.54.0 trên Dell Latitude 7490
+- Tạo GitHub account: DuyLnh (nh0ksikel125@gmail.com)
+- Tạo repo: github.com/DuyLnh/Foundry-Caf-ERP (Public)
+- Push first commit: 16 files, 592 insertions
+- Auth method: Personal Access Token (no expiration, scope: repo)
+- Credentials lưu trong notepad coffee-shop-clean
+
+FILES TRÊN GITHUB:
+- addons/ (pos_kot + pos_vietqr_config)
+- config/odoo.conf
+- docker-compose.yml
+- README.md, .gitignore
+- order_receipt_{backup,check,original}.xml
+
+PENDING S9:
+- Đổi 29 finished products từ Consumable → Storable
+- Tạo đủ nguyên liệu thô còn lại
+- Tạo BoM cho các sản phẩm còn lại
+
+═══════════════════════════════════════
+SESSION LOG — S9 | 2026-05-26
+═══════════════════════════════════════
+
+WHAT WAS DONE:
+- Đổi 27 finished products từ Consumable → Storable via SQL 
+  (UI block vì có sales orders, bypass bằng PostgreSQL UPDATE)
+- Giữ Discount + Tips là Consumable (không track tồn kho)
+- Archive Cappuccino (quán không bán, giữ DB integrity)
+- Tạo nguyên liệu thô mới: Bột Cacao (g), Kem Béo Rich's (ml), 
+  Muối (g), Cốt Dừa (ml), Trân Châu Trắng (g), Mứt Chanh Dây (ml), 
+  Mứt Dâu Tây (ml), Mứt Việt Quất (ml), Trà Xanh (g), 
+  Hồng Trà (g), Trà Đen (g), Trà Olong (g)
+- Tạo semi-finished products: Kem Muối (ml), Kem Dừa (ml), 
+  Espresso Shot (Units), Nước Hồng Trà (ml), Nước Trà Đen (ml), 
+  Nước Trà Lài (ml), Nước Trà Xanh (ml), Nước Trà Olong (ml)
+- Tạo BoM hoàn chỉnh:
+  * Cacao Đá: 10g Bột Cacao + 40ml Sữa Đặc
+  * Cacao Nóng: 10g Bột Cacao + 40ml Sữa Đặc
+  * Cacao Kem Muối: 1 Cacao Đá + 30ml Kem Muối (nested)
+  * Espresso Shot: 7g Cà Phê Hạt
+  * Espresso: 1 Espresso Shot (nested)
+  * Latte: 1 Espresso Shot + 100ml Sữa Tươi (nested)
+  * Cà Phê Sữa Máy: 1 Espresso Shot + 20ml Sữa Đặc (nested)
+  * Cà Phê Sữa Phin: 50ml Cốt Cà Phê + 20ml Sữa Đặc
+  * Sữa Chua: 40ml Sữa Đặc + 30ml Sữa Tươi + 40g Trân Châu Trắng
+  * Sữa Chua Chanh Dây: 1 Sữa Chua + 20ml Mứt Chanh Dây
+  * Sữa Chua Dâu Tây: 1 Sữa Chua + 20ml Mứt Dâu Tây
+  * Sữa Chua Việt Quất: 1 Sữa Chua + 20ml Mứt Việt Quất
+  * Sinh Tố Bơ/Dưa/Việt Quất: 80ml Sữa Tươi + 30ml Sữa Đặc
+  * Nước Hồng Trà: 100g Hồng Trà per 1000ml
+  * Nước Trà Đen: 35g Trà Đen per 1000ml
+  * Nước Trà Lài: 100g Trà Xanh per 1000ml
+  * Nước Trà Xanh: 25g Trà Xanh per 1000ml
+  * Nước Trà Olong: 25g Trà Olong per 1000ml
+- Ghi Internal Notes cho 15 nguyên liệu (packaging info)
+- Rule: trái cây tươi + chanh/tắc không track trong BoM (yield 
+  không ổn định), chỉ track khi nhập kho theo kg
+- Design decision: dùng A+B cho inventory management 
+  (MO cuối ngày + Reorder rules)
+
+DATA STATE UPDATE:
+- product_template: 53 (tăng từ 34, thêm nguyên liệu + semi-finished)
+- Cappuccino: Archived
+- 27 finished products: Storable (đổi via SQL)
+- BoM: ~21 records (tăng từ 2)
+- mrp module: installed (từ S7)
+
+PENDING S10:
+- Tạo BoM cho nhóm Trà (5 món: Trà Vải, Trà Vải Lá Dứa, 
+  Olong Nhãn Lá Dứa, Trà Chanh Dây Ổi Hồng, Trà Me, Trà Đào)
+- Tạo BoM cho nhóm Ép (3 món)
+- Tạo BoM Kem Muối + Kem Dừa khi có công thức thực tế
+- Matcha Kem Dừa, Matcha Latte chưa có BoM
+- Bạc Sỉu BoM cần verify lại (S7 tạo, có thể cần update)
+═══════════════════════════════════════
+SESSION LOG — S9 | 2026-05-28
+═══════════════════════════════════════
+
+WHAT WAS DONE:
+- Bulk update 25 finished products Consumable → Storable
+  via Export CSV → sửa Notepad → Import lại
+- Consumable còn lại: Discount + Tips (đúng, intentional)
+- Storable Product: 51 total (26 nguyên liệu + 25 menu items)
+- Tạo BoM: Kem muối (Kem Béo Rich's 200ml + Sữa tươi 50ml
+  + Sữa đặc 30ml + Muối 5g → 400ml)
+- Tạo BoM: Kem dừa (Cốt dừa 200ml + Kem Béo Rich's 100ml
+  + Sữa đặc 100ml → 400ml)
+
+DATA STATE UPDATE:
+- product_template Consumable: 2 (Discount + Tips)
+- product_template Storable: 51
+- BoM: 4 records (Cốt Cà Phê + Bạc Sỉu + Kem muối + Kem dừa)
+
+═══════════════════════════════════════
+SESSION LOG — S10 | 2026-05-29
+═══════════════════════════════════════
+
+WHAT WAS DONE:
+- Tạo 15 sản phẩm mới (Storable): Mứt Vải, Sirup Vải, Sirup Lá Dứa,
+  Nước Đường, Mứt Ổi Hồng, Mứt Me, Nhãn Lon, Mứt Đào, Sirup Đào,
+  Bột Matcha Cozy, Đường Cát Trắng, Đào Lon, Vải Lon, Đào Miếng,
+  Xiên Me
+- Tạo 13 BoM mới: Trà Vải, Trà Vải Lá Dứa, Olong Nhãn Lá Dứa,
+  Trà Chanh Dây Ổi Hồng, Trà Me, Trà Đào, Matcha Latte, Matcha Kem Dừa,
+  Nước Đường, Đào Miếng, Ép Dưa Hấu, Ép Thơm, Ép Ổi
+- Nhóm Trà (6 món) + Nhóm Ép (3 món) + Matcha (2 món): BoM hoàn chỉnh
+- Design decisions: Đào Miếng = semi-finished (Đào Lon → 48 miếng);
+  Vải Lon + Nhãn Lon track nguyên lon/trái; trái cây tươi không track;
+  Nước Đường = semi-finished (1000g đường → 900ml)
+- Packaging notes: Mứt Vải 1000ml/chai, Sirup Vải 750ml/chai,
+  Sirup Lá Dứa 700ml/chai, Nhãn Lon 26 trái/lon,
+  Đào Lon 8 nửa trái/lon (1 nửa = 6 miếng = 48 miếng/lon),
+  Bột Matcha Cozy 500g/túi, Sirup Đào 750ml/chai, Xiên Me 25 xiên/hộp
+
+DATA STATE UPDATE:
+- product_template: ~81 (tăng thêm 15)
+- BoM: ~36 records (tăng thêm 13)
+
+PENDING S11:
+- Sinh Tố (Bơ, Dưa, Việt Quất): verify/tạo BoM nếu chưa có
+- Các BoM từ S9 cần double-check: Sữa Chua nhóm, Cà Phê nhóm
+- Reorder Rules (sau khi BoM hoàn chỉnh)
+
+═══════════════════════════════════════
+SESSION LOG — S11 | 2026-05-30
+═══════════════════════════════════════
+
+WHAT WAS DONE:
+- Verify BoM Sinh Tố (3): đúng, trái cây tươi intentionally 
+  excluded khỏi BoM (yield không ổn định)
+- Verify BoM Sữa Chua (4): đúng, nested pattern nhất quán
+- Verify BoM Cà Phê (8): đủ, không thiếu
+- Tạo 22 Reorder Rules cho toàn bộ nguyên liệu track được
+- Design decision: Lon (Nhãn/Vải/Đào) track theo Units/trái 
+  vì packaging size không đồng nhất — trade-off documented
+- Design decision: Reorder Rules dùng estimated parameters 
+  (operational data, dễ điều chỉnh khi vận hành thật)
+
+DATA STATE UPDATE:
+- Reorder Rules: 22 records (mới hoàn toàn)
+- BoM: ~36-38 records (verified, không thay đổi)
+
+PENDING S12:
+- Nhóm Trà chưa có Reorder Rules (Hồng Trà, Trà Đen, 
+  Trà Xanh, Trà Olong) — cần confirm packaging size
+- Cốt Dừa chưa có rule
+- Nước Đường chưa có rule
