@@ -58,7 +58,7 @@
 - Infrastructure: mail, bus, portal, payment, http_routing, google_gmail, barcodes
 
 ### Intentionally NOT installed
-- purchase (no PO management - need defense story)
+- Purchase: installed S15 (Procure-to-Pay flow verified)
 - hr (no HR module - need defense story)
 - website (no e-commerce - need defense story)
 
@@ -66,11 +66,14 @@
 
 | Entity | Count | Notes |
 |--------|-------|-------|
-| product_template | 36 | Coffee menu |
+| product_template | ~81 | Raw materials + semi-finished + menu items |
 | res_partner | 14 | Customers + suppliers + employees mixed |
 | pos_config | 1 | Single POS for Foundry Café |
-| pos_order | 52 | **Real transactions tested - workflow verified** |
-| loyalty_program | 3 | Including "5 drinks → 1 free bạc sỉu" + 2 to identify |
+| pos_order | 55 | Real transactions verified end-to-end |
+| loyalty_program | 2 | Mua 5 tặng 1 Bạc Sỉu + Tích điểm 300k→20k |
+| purchase_order | 1 | P00001, Done |
+| stock_picking (receipts) | 2 | WH/IN/00001 + WH/IN/00002 |
+| account_move (vendor bills) | 1 | BILL/2026/06/0001, Paid |
 
 ## 6. STRATEGIC CONTEXT
 
@@ -338,3 +341,151 @@ PENDING S12:
   Trà Xanh, Trà Olong) — cần confirm packaging size
 - Cốt Dừa chưa có rule
 - Nước Đường chưa có rule
+
+═══════════════════════════════════════
+SESSION LOG — S12 | 2026-06-03
+═══════════════════════════════════════
+
+WHAT WAS DONE:
+- Hoàn chỉnh Reorder Rules: bổ sung 5 rules còn thiếu từ S11
+  * Trà Xanh: Min 500g / Max 3000g
+  * Trà Olong: Min 500g / Max 3000g
+  * Trà Đen: Min 500g / Max 3000g
+  * Hồng Trà: Min 500g / Max 3000g
+  * Cốt Dừa: Min 800ml / Max 4000ml
+- Design decisions documented:
+  * Nhóm trà khô: nhập 3 túi/quý, trigger khi còn 0.5 túi (500g)
+  * Cốt Dừa: đóng lon hạn dài, nhập bulk 10 lon an toàn
+- Tổng Reorder Rules: 27 records (hoàn chỉnh)
+
+DATA STATE UPDATE:
+- Reorder Rules: 27 records (tăng từ 22)
+
+PENDING S13:
+- Inventory layer hoàn chỉnh — có thể chuyển sang
+  transaction flow hoặc reporting
+═══════════════════════════════════════
+SESSION LOG — S13 | 2026-06-05
+═══════════════════════════════════════
+
+WHAT WAS DONE:
+- Transaction Flow: Bán hàng + Báo cáo end-to-end
+  * POS Session POS/00021: Open (500k float) → Order (Bạc Sỉu 40k 
+    + Latte 45k + Trà Đào 50k = 135k, customer Nguyễn Huy Hoa, 
+    customer note "ít đá") → Payment Bank 135k → Close
+  * Z-Report (Session Report): Sales by category (Cà Phê 85k, 
+    Trà 50k), Payments (Cash 0đ, Bank 135k), Session Control 
+    (Cash 0đ diff, Bank 0đ diff) — verified hoàn chỉnh
+  * Sales Details report: filter theo date range, same data as 
+    Z-Report but printable format
+  * Orders Analysis pivot: May 53 orders/3,687k, June 1/135k, 
+    Total 54/3,742k
+
+- Inventory Movement verification:
+  * Bạc Sỉu On Hand: -1 (trước MO) — âm vì lab chưa nhập kho
+  * Stock Moves History: 6 records, 9 units total (Out = số 
+    transactions, Sold = số lượng)
+  * Flow: WH/Stock → Partners/Customers, audit trail hoàn chỉnh
+
+- Manufacturing Order WH/MO/00001:
+  * Bạc Sỉu × 10, Components auto-calculated: Sữa Đặc 200ml 
+    + Sữa Tươi 400ml + Cốt Cà Phê 300ml
+  * Draft → Confirmed (Component Status: Not Available) → Done
+  * Product Moves: 3 nguyên liệu WH/Stock → Virtual 
+    Locations/Production + 1 thành phẩm Production → WH/Stock
+  * Bạc Sỉu On Hand sau MO: 9 units (10 sản xuất - 1 đã bán)
+
+- Loyalty Program demo:
+  * POS Session POS/00022: Customer Bùi Đình Huy, 5x Bạc Sỉu
+  * "Mua 5 tặng 1": Points Won +5, Spent -5, New Total 0 
+    → Free Product -40,000đ applied
+  * "Tích điểm 300k→20k": Points Won +200,000, New Total 200,000
+  * Receipt hiện loyalty section + customer name
+  * Total: 200,000đ (5 ly trả tiền, 1 ly free)
+
+KEY CONCEPTS LEARNED:
+- POS trừ tồn kho thành phẩm real-time, KHÔNG trigger BoM/MO
+- MO là giao dịch kế toán kho, không phải hành động vật lý
+- Odoo Community: POS và MRP tách biệt, cần manual MO hàng ngày
+- Gap vs iPOS/KiotViet: không có auto ingredient deduction — 
+  defensible as portfolio demo showing system depth
+- Out = số stock move records, Sold = tổng quantity
+
+DATA STATE UPDATE:
+- pos_order: 55 (tăng từ 53, thêm 2 orders hôm nay)
+- Manufacturing Orders: 1 (WH/MO/00001, Done)
+- Bạc Sỉu On Hand: 3 (9 trước session 2, bán thêm 6)
+- POS Sessions: 22 (POS/00021 + POS/00022)
+
+PENDING S14:
+- Git push session log + master context update
+- Nhập hàng (Purchase Receipt) — luồng còn lại
+- Hoặc chuyển sang Defense Stories / Interview Prep
+═══════════════════════════════════════
+SESSION LOG — S14 | 2026-06-08
+═══════════════════════════════════════
+
+WHAT WAS DONE:
+- Git status: nothing to commit, working tree clean
+- Tạo Purchase Receipt WH/IN/00001 (thủ công, không qua PO):
+  * Receive From: Foundry Café
+  * Sữa Đặc 2,000ml / Sữa Tươi 5,000ml
+  * Cà Phê Hạt 500g / Hồng Trà 300g
+  * Status: Done, Effective Date: 06/08/2026
+- Verify tồn kho: Sữa Đặc On Hand 1,800ml (Forecasted Report confirmed)
+- Chart confirmed: on-hand âm từ tháng 3, nhảy lên dương sau WH/IN/00001
+
+DATA STATE UPDATE:
+- Stock Receipts: 1 (WH/IN/00001, Done)
+- Sữa Đặc On Hand: ~1,800ml
+- Sữa Tươi / Cà Phê Hạt / Hồng Trà: tăng tương ứng
+
+═══════════════════════════════════════
+SESSION LOG — S15 | 2026-06-08
+═══════════════════════════════════════
+
+WHAT WAS DONE:
+- Defense Story thảo luận: No Purchase/HR/Website module
+  * Lập luận 1: Segregation of duties (tách bạch trách nhiệm)
+    — quản lý quán không nên nắm lương + giá vốn nguyên liệu
+  * Lập luận 2: Attack surface reduction (giảm bề mặt tấn công)
+    — ẩn dụ "két sắt giữa nhà vs két sắt trong phòng riêng"
+    — không cài = không tồn tại entry point, không phát sinh cám dỗ
+  * Quyết định: cài Purchase để portfolio mạnh hơn
+    — story đổi từ "không cài" → "cài đầy đủ + hiểu trade-off"
+
+- Cài Purchase module: ~2 phút, không ảnh hưởng data cũ
+
+- Luồng Procure-to-Pay (mua hàng đến thanh toán) hoàn chỉnh:
+  * RFQ → Confirm → P00001 (Purchase Order)
+  * P00001 → Receive Products → WH/IN/00002 (Done)
+  * P00001 → Create Bill → BILL/2026/06/0001
+  * Bill Date điền → Confirm → Posted
+  * Register Payment → PAID (165,000đ gồm VAT 10%)
+
+- Backup database: coffee_shop_clean_2026-06-08_04-01-51.zip (14.9MB)
+
+KEY CONCEPTS:
+- Procure-to-Pay: RFQ (phiếu hỏi giá) → PO (đơn đặt hàng)
+  → Receipt (phiếu nhận hàng) → Vendor Bill (hóa đơn NCC)
+  → Payment (thanh toán)
+- Draft (bản nháp) → Posted (đã ghi sổ) → Paid (đã thanh toán)
+- Demand (số lượng yêu cầu) vs Quantity (số lượng thực nhận)
+- Backorder (đơn tồn đọng): khi nhận thiếu hàng so với PO
+- Unit Price (đơn giá): có thể để demo hoặc thật tùy chiến lược
+  bảo mật thông tin margin của chủ quán
+- Git chỉ track file code, không track database
+  → Backup .zip là cách duy nhất bảo vệ data
+
+DATA STATE UPDATE:
+- Purchase module: installed
+- Purchase Orders: 1 (P00001, Done)
+- Stock Receipts: 2 (WH/IN/00001 thủ công + WH/IN/00002 từ PO)
+- Vendor Bills: 1 (BILL/2026/06/0001, Paid)
+- Database backup: coffee_shop_clean_2026-06-08_04-01-51.zip
+
+PENDING S16:
+- Update coffee_erp_master_context.md với data state mới
+- Defense Stories còn lại: #4 (no auto ingredient deduction)
+  và #5 (Lon products tracking)
+- Interview prep
